@@ -30,6 +30,7 @@ async function run() {
     const db = client.db("community_cleaning_db");
     const issuesCollection = db.collection("issuesCollection");
     const categoryCollection = db.collection("categoryCollections");
+    const addIssue = db.collection('addIssueCollection')
 
     app.get("/issues", async (req, res) => {
       const issues = issuesCollection.find().sort({ date: -1 }).limit(4);
@@ -37,33 +38,15 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/garbage", async (req, res) => {
-      const query = { category: "Garbage" };
-      const result = await categoryCollection.findOne(query);
+    app.get("/categoryCards", async (req, res) => {
+      const cursor = categoryCollection.find();
+      const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get("/illegalConstruction", async (req, res) => {
-      const query = { category: "Illegal Construction" };
-      const result = await categoryCollection.findOne(query);
-      res.send(result);
-    });
-
-    app.get("/brokenPublicProperty", async (req, res) => {
-      const query = { category: "Broken Public Property" };
-      const result = await categoryCollection.findOne(query);
-      res.send(result);
-    });
-
-    app.get("/roadDamage", async (req, res) => {
-      const query = { category: "Road Damage" };
-      const result = await categoryCollection.findOne(query);
-      res.send(result);
-    });
-
-    app.post("/issues", async (req, res) => {
+    app.post("/allIssues", async (req, res) => {
       const newIssue = req.body;
-      const result = await issuesCollection.insertOne(newIssue);
+      const result = await addIssue.insertOne(newIssue);
       res.send(result);
     });
 
