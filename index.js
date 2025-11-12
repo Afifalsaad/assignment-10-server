@@ -34,7 +34,7 @@ async function run() {
     const contribution = db.collection("contribution");
 
     app.get("/issues", async (req, res) => {
-      const issues = addIssue.find().sort({ date: -1 }).limit(6);
+      const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
       const result = await issues.toArray();
       res.send(result);
     });
@@ -45,8 +45,28 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/myIssues", async (req, res) => {
+      console.log(req.query);
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+
+      const issues = addIssue.find(query);
+      const result = await issues.toArray();
+      res.send(result);
+    });
+
     app.get("/allIssues", async (req, res) => {
-      const issues = issuesCollection.find();
+      console.log(req.query);
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+
+      const issues = issuesCollection.find(query);
       const result = await issues.toArray();
       res.send(result);
     });
@@ -55,7 +75,7 @@ async function run() {
       const id = req.params.id;
       const query = { product_id: id };
       const cursor = contribution.find(query);
-      const result = await cursor.toArray()
+      const result = await cursor.toArray();
       res.send(result);
     });
 
