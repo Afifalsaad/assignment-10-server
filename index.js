@@ -45,6 +45,24 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/addIssues/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const updatedData = req.body;
+      console.log(updatedData);
+      const query = { _id: new ObjectId(id) };
+      const update = {
+        $set: {
+          title: updatedData.title,
+          status: updatedData.status,
+          amount: updatedData.amount,
+          category: updatedData.category,
+        },
+      };
+      const result = await addIssue.updateOne(query, update);
+      res.send(result);
+    });
+
     app.get("/myIssues", async (req, res) => {
       console.log(req.query);
       const email = req.query.email;
