@@ -63,6 +63,13 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/addIssues/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await addIssue.deleteOne(query);
+      res.send(result);
+    });
+
     app.get("/myIssues", async (req, res) => {
       console.log(req.query);
       const email = req.query.email;
