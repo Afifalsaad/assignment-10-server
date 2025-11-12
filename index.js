@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -30,11 +30,24 @@ async function run() {
     const db = client.db("community_cleaning_db");
     const issuesCollection = db.collection("issuesCollection");
     const categoryCollection = db.collection("categoryCollections");
-    const addIssue = db.collection('addIssueCollection')
+    const addIssue = db.collection("addIssueCollection");
 
     app.get("/issues", async (req, res) => {
-      const issues = issuesCollection.find().sort({ date: -1 }).limit(4);
+      const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
       const result = await issues.toArray();
+      res.send(result);
+    });
+
+    app.get("/allIssues", async (req, res) => {
+      const issues = issuesCollection.find();
+      const result = await issues.toArray();
+      res.send(result);
+    });
+
+    app.get("/allIssues/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await issuesCollection.findOne(query);
       res.send(result);
     });
 
