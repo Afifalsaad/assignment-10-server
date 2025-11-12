@@ -31,17 +31,31 @@ async function run() {
     const issuesCollection = db.collection("issuesCollection");
     const categoryCollection = db.collection("categoryCollections");
     const addIssue = db.collection("addIssueCollection");
-    const myContribution = db.collection('myContributionCollection')
+    const contribution = db.collection("contribution");
 
     app.get("/issues", async (req, res) => {
-      const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
+      const issues = addIssue.find().sort({ date: -1 }).limit(6);
       const result = await issues.toArray();
+      res.send(result);
+    });
+
+    app.post("/addIssues", async (req, res) => {
+      const newIssue = req.body;
+      const result = await addIssue.insertOne(newIssue);
       res.send(result);
     });
 
     app.get("/allIssues", async (req, res) => {
       const issues = issuesCollection.find();
       const result = await issues.toArray();
+      res.send(result);
+    });
+
+    app.get("/allIssues/issue/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { product_id: id };
+      const cursor = contribution.find(query);
+      const result = await cursor.toArray()
       res.send(result);
     });
 
@@ -58,17 +72,11 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/allIssues", async (req, res) => {
-      const newIssue = req.body;
-      const result = await addIssue.insertOne(newIssue);
+    app.post("/contribution", async (req, res) => {
+      const newContribution = req.body;
+      const result = await contribution.insertOne(newContribution);
       res.send(result);
     });
-
-    app.post('/myContribution', async (req,res)=>{
-      const newContribution = req.body
-      const result = await myContribution.insertOne(newContribution)
-      res.send(result)
-    })
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
