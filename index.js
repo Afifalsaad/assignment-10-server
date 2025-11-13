@@ -10,9 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 
-// const uri =
-//   "mongodb+srv://assignment10:5pBnPkwHmyoH7kQD@cluster0.avcddas.mongodb.net/?appName=Cluster0";
-
   const uri =
   `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.avcddas.mongodb.net/?appName=Cluster0`;
 
@@ -26,12 +23,13 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("community_cleaning_db");
     const issuesCollection = db.collection("issuesCollection");
     const categoryCollection = db.collection("categoryCollections");
     const addIssue = db.collection("addIssueCollection");
     const contribution = db.collection("contribution");
+
 
     app.get("/issues", async (req, res) => {
       const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
@@ -130,9 +128,9 @@ async function run() {
       res.send(result);
     });
 
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // client.close()
   }
