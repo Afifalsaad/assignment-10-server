@@ -20,10 +20,6 @@ const client = new MongoClient(uri, {
   },
 });
 
-app.get("/", (req, res) => {
-  res.send("Hii World");
-});
-
 async function run() {
   try {
     await client.connect();
@@ -47,9 +43,7 @@ async function run() {
 
     app.patch("/addIssues/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const updatedData = req.body;
-      console.log(updatedData);
       const query = { _id: new ObjectId(id) };
       const update = {
         $set: {
@@ -71,27 +65,25 @@ async function run() {
     });
 
     app.get("/myIssues", async (req, res) => {
-      console.log(req.query);
       const email = req.query.email;
       const query = {};
       if (email) {
         query.email = email;
       }
-
       const issues = addIssue.find(query);
       const result = await issues.toArray();
       res.send(result);
     });
 
     app.get("/allIssues", async (req, res) => {
-      console.log(req.query);
-      const email = req.query.email;
-      const query = {};
-      if (email) {
-        query.email = email;
-      }
+      // console.log(req.query);
+      // const email = req.query.email;
+      // const query = {};
+      // if (email) {
+      //   query.email = email;
+      // }
 
-      const issues = issuesCollection.find(query);
+      const issues = issuesCollection.find();
       const result = await issues.toArray();
       res.send(result);
     });
@@ -120,6 +112,17 @@ async function run() {
     app.post("/contribution", async (req, res) => {
       const newContribution = req.body;
       const result = await contribution.insertOne(newContribution);
+      res.send(result);
+    });
+
+    app.get("/myContribution", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (query) {
+        query.email = email;
+      }
+      const contributions = contribution.find(query)
+      const result = await contributions.toArray();
       res.send(result);
     });
 
