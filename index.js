@@ -4,7 +4,7 @@ require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
-console.log(process.env)
+
 
 app.use(cors());
 app.use(express.json());
@@ -30,6 +30,9 @@ async function run() {
     const addIssue = db.collection("addIssueCollection");
     const contribution = db.collection("contribution");
 
+      app.get('/',(req,res)=>{
+        res.send("Hello")
+      })
 
     app.get("/issues", async (req, res) => {
       const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
@@ -78,12 +81,6 @@ async function run() {
     });
 
     app.get("/allIssues", async (req, res) => {
-      // console.log(req.query);
-      // const email = req.query.email;
-      // const query = {};
-      // if (email) {
-      //   query.email = email;
-      // }
 
       const issues = issuesCollection.find();
       const result = await issues.toArray();
