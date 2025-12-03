@@ -1,17 +1,40 @@
 const express = require("express");
 const cors = require("cors");
-require('dotenv').config()
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
+var admin = require("firebase-admin");
 
+var serviceAccount = require("./AdminSDK/assignment-10communitycleaning-firebase-adminsdk-fbsvc-6d5ce80479.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// middleware
 app.use(cors());
 app.use(express.json());
 
+const verifyFBToken = async (req, res, next) => {
+  // console.log(req.headers.authorization);
+  const token = req.headers?.authorization;
 
-  const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.avcddas.mongodb.net/?appName=Cluster0`;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  try {
+    const idToken = token.split(" ")[1];
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    console.log("decoded in the token", decoded);
+    req.decoded_email = decoded.email;
+    next();
+  } catch (err) {}
+};
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.avcddas.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -30,9 +53,9 @@ async function run() {
     const addIssue = db.collection("addIssueCollection");
     const contribution = db.collection("contribution");
 
-      app.get('/',(req,res)=>{
-        res.send("Hello")
-      })
+    app.get("/", (req, res) => {
+      res.send("Hello");
+    });
 
     app.get("/issues", async (req, res) => {
       const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
@@ -69,11 +92,17 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/myIssues", async (req, res) => {
+    app.get("/myIssues", verifyFBToken, async (req, res) => {
       const email = req.query.email;
+
       const query = {};
       if (email) {
         query.email = email;
+
+        // check email for JWT verification
+        if (email !== req.decoded_email) {
+          return res.status(403).send({ message: "Forbidden Access" });
+        }
       }
       const issues = addIssue.find(query);
       const result = await issues.toArray();
@@ -81,7 +110,6 @@ async function run() {
     });
 
     app.get("/allIssues", async (req, res) => {
-
       const issues = issuesCollection.find();
       const result = await issues.toArray();
       res.send(result);
@@ -120,14 +148,14 @@ async function run() {
       if (query) {
         query.email = email;
       }
-      const contributions = contribution.find(query)
+      const contributions = contribution.find(query);
       const result = await contributions.toArray();
       res.send(result);
     });
 
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // client.close()
   }
