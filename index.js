@@ -4,6 +4,7 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
+const stripe = require("stripe")(process.env.STRIPE_USER);
 
 var admin = require("firebase-admin");
 
@@ -18,7 +19,6 @@ app.use(cors());
 app.use(express.json());
 
 const verifyFBToken = async (req, res, next) => {
-  // console.log(req.headers.authorization);
   const token = req.headers?.authorization;
 
   if (!token) {
@@ -28,7 +28,6 @@ const verifyFBToken = async (req, res, next) => {
   try {
     const idToken = token.split(" ")[1];
     const decoded = await admin.auth().verifyIdToken(idToken);
-    console.log("decoded in the token", decoded);
     req.decoded_email = decoded.email;
     next();
   } catch (err) {}
@@ -117,8 +116,8 @@ async function run() {
 
     app.get("/allIssues/issue/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { product_id: id };
-      const cursor = contribution.find(query);
+      const query = { issueId: id };
+      const cursor = contribution.find(query).sort({ createdAt: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -136,12 +135,6 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/contribution", async (req, res) => {
-      const newContribution = req.body;
-      const result = await contribution.insertOne(newContribution);
-      res.send(result);
-    });
-
     app.get("/myContribution", async (req, res) => {
       const email = req.query.email;
       const query = {};
@@ -153,9 +146,82 @@ async function run() {
       res.send(result);
     });
 
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // Payment Related APIs
+    app.post("/create-checkout-session", async (req, res) => {
+      const contribution = req.body;
+      const amount = parseInt(contribution.amount) * 100;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: "USD",
+              unit_amount: amount,
+              product_data: {
+                name: contribution.issueTitle,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: contribution.email,
+        metadata: {
+          issueId: contribution.issue_id,
+          title: contribution.title,
+          issueTitle: contribution.issueTitle,
+          amount: contribution.amount,
+          name: contribution.name,
+          email: contribution.email,
+          image: contribution.image,
+          phoneNumber: contribution.phoneNumber,
+          address: contribution.address,
+          info: contribution.info,
+          createdAt: new Date().toLocaleString(),
+        },
+        mode: "payment",
+        success_url: `${process.env.SITE_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/payment-cancelled`,
+      });
+      res.send({ url: session.url });
+    });
+
+    app.post("/payment-success", async (req, res) => {
+      const sessionId = req.query.session_id;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      const transactionId = session.payment_intent;
+      const query = { transactionId: transactionId };
+
+      const isExist = await contribution.findOne(query);
+      if (isExist) {
+        return res.send({ message: "Already Exists", transactionId });
+      }
+
+      if (session.payment_status === "paid") {
+        const newContribution = {
+          issueId: session.metadata.issueId,
+          title: session.metadata.title,
+          issueTitle: session.metadata.issueTitle,
+          amount: session.metadata.amount,
+          name: session.metadata.name,
+          email: session.metadata.email,
+          image: session.metadata.image,
+          phoneNumber: session.metadata.phoneNumber,
+          address: session.metadata.address,
+          info: session.metadata.info,
+          createdAt: new Date(),
+          transactionId: session.payment_intent,
+        };
+
+        const result = await contribution.insertOne(newContribution);
+        return res.send(result);
+      }
+
+      res.send({ message: true });
+    });
+
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // client.close()
   }
