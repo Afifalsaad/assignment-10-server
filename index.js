@@ -9,6 +9,7 @@ const stripe = require("stripe")(process.env.STRIPE_USER);
 var admin = require("firebase-admin");
 
 var serviceAccount = require("./AdminSDK/assignment-10communitycleaning-firebase-adminsdk-fbsvc-6d5ce80479.json");
+const e = require("express");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -51,9 +52,32 @@ async function run() {
     const categoryCollection = db.collection("categoryCollections");
     const addIssue = db.collection("addIssueCollection");
     const contribution = db.collection("contribution");
+    const usersCollection = db.collection("usersCollection");
 
     app.get("/", (req, res) => {
       res.send("Hello");
+    });
+
+    // Users Related APIs
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await usersCollection.findOne(query);
+      res.send(result.role);
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "user";
+      user.createdAt = new Date().toLocaleString();
+      const email = user.email;
+      const alreadyExists = await usersCollection.findOne({ email });
+      if (alreadyExists) {
+        return res.send({ message: "User Already Exists" });
+      }
+
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
     });
 
     app.get("/issues", async (req, res) => {
