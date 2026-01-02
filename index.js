@@ -240,10 +240,9 @@ async function run() {
           transactionId: transactionId,
         };
 
-        // Atomic insert: duplicate transactionId থাকলে insert হবে না
         const result = await contribution.updateOne(
-          { transactionId: transactionId }, // filter
-          { $setOnInsert: contributionData }, // only insert if not exists
+          { transactionId: transactionId },
+          { $setOnInsert: contributionData },
           { upsert: true }
         );
 
