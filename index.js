@@ -63,6 +63,7 @@ async function run() {
       const email = req.params.email;
       const query = { email };
       const result = await usersCollection.findOne(query);
+      console.log(result.role);
       res.send(result.role);
     });
 
@@ -202,26 +203,29 @@ async function run() {
           createdAt: new Date().toLocaleString(),
         },
         mode: "payment",
-        success_url: `${process.env.SITE_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.SITE_DOMAIN}/payment-cancelled`,
       });
       res.send({ url: session.url });
     });
 
     app.post("/payment-success", async (req, res) => {
-      const sessionId = req.query.session_id;
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      try {
+        const sessionId = req.query.session_id;
+        if (!sessionId)
+          return res.status(400).send({ message: "No session_id provided" });
 
-      const transactionId = session.payment_intent;
-      const query = { transactionId: transactionId };
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const transactionId = session.payment_intent;
 
-      const isExist = await contribution.findOne(query);
-      if (isExist) {
-        return res.send({ message: "Already Exists", transactionId });
-      }
+        if (!transactionId)
+          return res.status(400).send({ message: "No transaction found" });
 
-      if (session.payment_status === "paid") {
-        const newContribution = {
+        if (session.payment_status !== "paid") {
+          return res.send({ message: "Payment not completed" });
+        }
+
+        const contributionData = {
           issueId: session.metadata.issueId,
           title: session.metadata.title,
           issueTitle: session.metadata.issueTitle,
@@ -233,14 +237,28 @@ async function run() {
           address: session.metadata.address,
           info: session.metadata.info,
           createdAt: new Date(),
-          transactionId: session.payment_intent,
+          transactionId: transactionId,
         };
 
-        const result = await contribution.insertOne(newContribution);
-        return res.send(result);
-      }
+        // Atomic insert: duplicate transactionId থাকলে insert হবে না
+        const result = await contribution.updateOne(
+          { transactionId: transactionId }, // filter
+          { $setOnInsert: contributionData }, // only insert if not exists
+          { upsert: true }
+        );
 
-      res.send({ message: true });
+        if (result.upsertedCount === 1) {
+          return res.send({
+            message: "Payment saved successfully",
+            transactionId,
+          });
+        } else {
+          return res.send({ message: "Payment already exists", transactionId });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Server error", error });
+      }
     });
 
     // console.log(
