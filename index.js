@@ -134,9 +134,15 @@ async function run() {
     });
 
     app.get("/allIssues", async (req, res) => {
-      const issues = issuesCollection.find();
-      const result = await issues.toArray();
-      res.send(result);
+      const limitNum = Number(req.query.limit) || 6;
+      const skipNum = Number(req.query.skip) || 0;
+      const cursor = issuesCollection
+        .find()
+        .skip(Number(skipNum))
+        .limit(Number(limitNum));
+      const result = await cursor.toArray();
+      const count = await issuesCollection.countDocuments();
+      res.send({ data: result, hasMore: skipNum + result.length < count });
     });
 
     app.get("/allIssues/issue/:id", async (req, res) => {
