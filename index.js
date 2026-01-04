@@ -59,6 +59,11 @@ async function run() {
     });
 
     // Users Related APIs
+    app.get("/users", async (req, res) => {
+      const users = await usersCollection.find().toArray();
+      res.send(users);
+    });
+
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -83,6 +88,12 @@ async function run() {
 
     app.get("/issues", async (req, res) => {
       const issues = issuesCollection.find().sort({ date: -1 }).limit(6);
+      const result = await issues.toArray();
+      res.send(result);
+    });
+
+    app.get("/All-issues-dashboard", async (req, res) => {
+      const issues = issuesCollection.find();
       const result = await issues.toArray();
       res.send(result);
     });
@@ -163,6 +174,11 @@ async function run() {
     app.get("/categoryCards", async (req, res) => {
       const cursor = categoryCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/all-contribution", async (req, res) => {
+      const result = await contribution.find().toArray();
       res.send(result);
     });
 
