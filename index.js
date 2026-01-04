@@ -282,6 +282,45 @@ async function run() {
       }
     });
 
+    app.get("/total-issues/stats", async (req, res) => {
+      const pipeline = [
+        {
+          $group: {
+            _id: "$category",
+            count: { $sum: 1 },
+          },
+        },
+      ];
+      const result = await issuesCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    });
+
+    app.get("/total-status/stats", async (req, res) => {
+      const pipeline = [
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ];
+      const result = await issuesCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    });
+
+    app.get("/total-amount/stats", async (req, res) => {
+      const pipeline = [
+        {
+          $group: {
+            _id: "$amount",
+            count: { $sum: 1 },
+          },
+        },
+      ];
+      const result = await issuesCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    });
+
     // console.log(
     //   "Pinged your deployment. You successfully connected to MongoDB!"
     // );
